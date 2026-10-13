@@ -54,6 +54,6 @@ After deploy, run the benchmark from the VM (the `vmSsh` stack output has the co
 
 ```bash
 gcloud compute ssh benchmark-wrk --zone southamerica-east1-a
-REDIS_URL='rediss://default:<password>@<host>:6379' setup.py   # once, populates Upstash
+sudo setup.py   # once, populates Upstash (URL comes from /etc/benchmark-redis.env, root-only)
 bench.sh
 ```

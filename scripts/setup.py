@@ -2,7 +2,8 @@
 """Store a random JSON document of exactly 100 KiB (102400 bytes) in Redis.
 
 Usage: REDIS_URL=rediss://default:<pw>@<host>:6379 ./setup.py
-Default REDIS_URL targets the docker-compose redis (localhost:6380). Stdlib only.
+REDIS_URL lookup: environment, then /etc/benchmark-redis.env (root-only, written on the
+VM by Pulumi; run with sudo), then the docker-compose redis (localhost:6380). Stdlib only.
 """
 import json
 import os
@@ -56,8 +57,22 @@ def command(*args):
     return b"".join(parts)
 
 
+def redis_url():
+    if os.environ.get("REDIS_URL"):
+        return os.environ["REDIS_URL"]
+    try:
+        with open("/etc/benchmark-redis.env") as f:
+            for line in f:
+                if line.startswith("REDIS_URL="):
+                    return line.split("=", 1)[1].strip()
+    except OSError as e:
+        if os.path.exists("/etc/benchmark-redis.env"):
+            sys.exit(f"cannot read /etc/benchmark-redis.env ({e.strerror}); run with sudo")
+    return "redis://localhost:6380"
+
+
 def main():
-    url = urlparse(os.environ.get("REDIS_URL", "redis://localhost:6380"))
+    url = urlparse(redis_url())
     sock = socket.create_connection((url.hostname, url.port or 6379), timeout=10)
     if url.scheme == "rediss":
         sock = ssl.create_default_context().wrap_socket(sock, server_hostname=url.hostname)

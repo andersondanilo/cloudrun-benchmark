@@ -53,14 +53,15 @@ def service(name: str, image: str) -> gcp.cloudrunv2.Service:
 node_svc = service("node-fastify", node_image)
 rust_svc = service("rust-poem", rust_image)
 
-# Cheapest VM: e2-micro. Installs wrk, setup.py and the bench script, pre-wired to both services.
+# Cheapest VM: e2-micro. Installs wrk, setup.py and the bench script, pre-wired to both services
+# and to Upstash (REDIS_URL in a root-only file; the startup script is a Pulumi secret).
 scripts = Path(__file__).resolve().parent.parent / "scripts"
 bench_sh = (scripts / "bench.sh").read_text()
 setup_py = (scripts / "setup.py").read_text()
 
 
-def render_startup(urls):
-    node_url, rust_url = urls
+def render_startup(values):
+    node_url, rust_url, redis = values
     return f"""#!/bin/bash
 set -eux
 apt-get update
@@ -68,6 +69,10 @@ apt-get install -y wrk curl python3
 cat > /etc/benchmark.env <<'ENV'
 NODE_URL={node_url}
 RUST_URL={rust_url}
+ENV
+install -m 600 /dev/null /etc/benchmark-redis.env
+cat > /etc/benchmark-redis.env <<'ENV'
+REDIS_URL={redis}
 ENV
 cat > /usr/local/bin/bench.sh <<'BENCH'
 {bench_sh}
@@ -79,7 +84,7 @@ chmod +x /usr/local/bin/bench.sh /usr/local/bin/setup.py
 """
 
 
-startup = pulumi.Output.all(node_svc.uri, rust_svc.uri).apply(render_startup)
+startup = pulumi.Output.all(node_svc.uri, rust_svc.uri, redis_url).apply(render_startup)
 
 vm = gcp.compute.Instance(
     "bench-vm",

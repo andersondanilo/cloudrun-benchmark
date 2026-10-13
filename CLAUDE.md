@@ -7,7 +7,7 @@ Benchmark comparing a Node/Fastify API and a Rust/Poem API on Cloud Run (São Pa
 - `rust-poem/` – Poem 3 + redis-rs (`src/main.rs`), own Dockerfile
 - `docker-compose.yml` – local stack (redis, node on :3000, rust on :3001)
 - `scripts/setup.py` – generates the exactly-102,400-byte random JSON and SETs it in Redis (run on the VM / locally; APIs have no write endpoint)
-- `scripts/bench.sh` – wrk runner (assumes setup.py already ran); both scripts are installed on the VM by Pulumi
+- `scripts/bench.sh` – wrk runner (assumes setup.py already ran); both scripts are installed on the VM by Pulumi, which also writes the Upstash `REDIS_URL` to root-only `/etc/benchmark-redis.env` (setup.py falls back to it; run with sudo)
 - `infra/` – Pulumi (Python, `__main__.py`): 2 Cloud Run services + e2-micro wrk VM. Redis is external (Upstash, `redisUrl` secret config)
 - `.github/workflows/` – `ci.yml` (commitlint + build), `release.yml` (release-please, no deploy), `deploy.yml` (manual `workflow_dispatch` only: images + pulumi up)
 
