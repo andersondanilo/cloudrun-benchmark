@@ -1,0 +1,6 @@
+name: cloudrun-benchmark
+runtime:
+  name: python
+  options:
+    virtualenv: venv
+description: Cloud Run (Node/Fastify + Rust/Poem) and a wrk VM in Sao Paulo

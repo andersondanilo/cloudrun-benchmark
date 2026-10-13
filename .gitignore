@@ -1,0 +1,6 @@
+target
+node_modules
+.pulumi
+infra/venv
+__pycache__
+resume.sh

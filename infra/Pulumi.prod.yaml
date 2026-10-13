@@ -1,0 +1,3 @@
+config:
+  gcp:region: southamerica-east1
+  gcp:zone: southamerica-east1-a

@@ -1,0 +1,71 @@
+name: deploy
+on:
+  workflow_call:
+    inputs:
+      tag: { type: string, required: true }
+  workflow_dispatch:
+    inputs:
+      tag: { description: Image tag, type: string, default: manual }
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  REGION: southamerica-east1
+  REPO: benchmark
+  # Repo variables: GCP_PROJECT_ID, GCP_WIF_PROVIDER, GCP_SERVICE_ACCOUNT
+  # Repo secrets: PULUMI_ACCESS_TOKEN, REDIS_URL (Upstash rediss:// URL)
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Ensure Artifact Registry repo and Docker auth
+        run: |
+          gcloud services enable artifactregistry.googleapis.com --project "${{ vars.GCP_PROJECT_ID }}"
+          gcloud artifacts repositories describe "$REPO" --location "$REGION" --project "${{ vars.GCP_PROJECT_ID }}" \
+            || gcloud artifacts repositories create "$REPO" --repository-format docker --location "$REGION" --project "${{ vars.GCP_PROJECT_ID }}"
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+
+      - name: Build and push images
+        id: img
+        run: |
+          base="$REGION-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/$REPO"
+          tag="${{ inputs.tag }}"
+          docker build -t "$base/node-fastify:$tag" node-fastify
+          docker build -t "$base/rust-poem:$tag" rust-poem
+          docker push "$base/node-fastify:$tag"
+          docker push "$base/rust-poem:$tag"
+          echo "node=$base/node-fastify:$tag" >> "$GITHUB_OUTPUT"
+          echo "rust=$base/rust-poem:$tag" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Install infra dependencies
+        working-directory: infra
+        run: |
+          python -m venv venv
+          venv/bin/pip install -r requirements.txt
+
+      - uses: pulumi/actions@v6
+        with:
+          command: up
+          stack-name: prod
+          work-dir: infra
+          upsert: true
+          config-map: |
+            gcp:project: { value: "${{ vars.GCP_PROJECT_ID }}" }
+            nodeImage: { value: "${{ steps.img.outputs.node }}" }
+            redisUrl: { value: "${{ secrets.REDIS_URL }}", secret: true }
+            rustImage: { value: "${{ steps.img.outputs.rust }}" }
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}

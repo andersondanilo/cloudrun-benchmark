@@ -1,0 +1,20 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports: ["6380:6379"]
+
+  node-fastify:
+    build: ./node-fastify
+    environment:
+      PORT: "8080"
+      REDIS_URL: redis://redis:6379
+    ports: ["3000:8080"]
+    depends_on: [redis]
+
+  rust-poem:
+    build: ./rust-poem
+    environment:
+      PORT: "8080"
+      REDIS_URL: redis://redis:6379
+    ports: ["3001:8080"]
+    depends_on: [redis]
