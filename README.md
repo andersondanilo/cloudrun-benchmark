@@ -44,7 +44,7 @@ Locally, compose runs a plain Redis container. Results are only indicative, sinc
 
 ## Deploy
 
-Releases use [release-please](https://github.com/googleapis/release-please) with [Conventional Commits](https://www.conventionalcommits.org/): merging the release PR on `main` triggers `deploy.yml`, which builds the images, pushes them to Artifact Registry and runs `pulumi up` (stack `prod`).
+Releases use [release-please](https://github.com/googleapis/release-please) with [Conventional Commits](https://www.conventionalcommits.org/): merging the release PR on `main` only cuts the release and does not deploy. Deploys are manual: Actions → **deploy** → *Run workflow* (or `gh workflow run deploy.yml`). It builds the images, pushes them to Artifact Registry and runs `pulumi up` (stack `prod`).
 
 GitHub configuration:
 - Variables: `GCP_PROJECT_ID`, `GCP_WIF_PROVIDER`, `GCP_SERVICE_ACCOUNT` (Workload Identity Federation)
