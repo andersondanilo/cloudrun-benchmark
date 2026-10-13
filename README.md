@@ -19,8 +19,8 @@ The APIs are read-only. `scripts/setup.py` (stdlib Python, no dependencies) gene
 
 **Infrastructure (Pulumi, `infra/`)**
 - Cloud Run v2, one service per API, `southamerica-east1`, 1 vCPU / 512 MiB, min = max = 1 instance, concurrency 20, public.
-- Redis: [Upstash](https://upstash.io) (not provisioned here; supply its `rediss://` URL).
-- Load generator: `e2-micro` Debian 12 VM in `southamerica-east1-a` with `wrk` installed, plus `/usr/local/bin/setup.py` and `/usr/local/bin/bench.sh` (pre-configured with both service URLs).
+- Redis: `e2-micro` Debian 12 VM (`redis-server`, password-protected, `maxmemory 512mb`, no persistence) in the same zone. Reached over its internal IP: the Cloud Run services use Direct VPC egress, and a firewall rule allows tcp/6379 only from the default network's private ranges.
+- Load generator: `e2-micro` Debian 12 VM in `southamerica-east1-a` (separate from the Redis VM) with `wrk` installed, plus `/usr/local/bin/setup.py` and `/usr/local/bin/bench.sh` (pre-configured with both service URLs).
 
 **Load profile (`scripts/bench.sh`, overridable via env):** 5 s warm-up, then `wrk -t2 -c20 -d30s --latency` against `GET /data`, node first, then rust.
 
@@ -48,12 +48,12 @@ Releases use [release-please](https://github.com/googleapis/release-please) with
 
 GitHub configuration:
 - Variables: `GCP_PROJECT_ID`, `GCP_WIF_PROVIDER`, `GCP_SERVICE_ACCOUNT` (Workload Identity Federation)
-- Secrets: `PULUMI_ACCESS_TOKEN`, `RELEASE_PLEASE_TOKEN` (PAT with `contents` + `pull requests` write; needed because Actions is not allowed to create PRs), `REDIS_URL` (Upstash `rediss://default:<password>@<host>:6379`)
+- Secrets: `PULUMI_ACCESS_TOKEN`, `RELEASE_PLEASE_TOKEN` (PAT with `contents` + `pull requests` write; needed because Actions is not allowed to create PRs)
 
 After deploy, run the benchmark from the VM (the `vmSsh` stack output has the command):
 
 ```bash
 gcloud compute ssh benchmark-wrk --zone southamerica-east1-a
-sudo setup.py   # once, populates Upstash (URL comes from /etc/benchmark-redis.env, root-only)
+sudo setup.py   # once, populates Redis (URL comes from /etc/benchmark-redis.env, root-only)
 bench.sh
 ```

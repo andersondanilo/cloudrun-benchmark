@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Store a random JSON document of exactly 100 KiB (102400 bytes) in Redis.
 
-Usage: REDIS_URL=rediss://default:<pw>@<host>:6379 ./setup.py
+Usage: REDIS_URL=redis://default:<pw>@<host>:6379 ./setup.py
 REDIS_URL lookup: environment, then /etc/benchmark-redis.env (root-only, written on the
 VM by Pulumi; run with sudo), then the docker-compose redis (localhost:6380). Stdlib only.
 """

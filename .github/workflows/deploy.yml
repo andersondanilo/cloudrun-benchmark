@@ -15,7 +15,7 @@ env:
   REGION: southamerica-east1
   REPO: benchmark
   # Repo variables: GCP_PROJECT_ID, GCP_WIF_PROVIDER, GCP_SERVICE_ACCOUNT
-  # Repo secrets: PULUMI_ACCESS_TOKEN, REDIS_URL (Upstash rediss:// URL)
+  # Repo secrets: PULUMI_ACCESS_TOKEN
 
 jobs:
   deploy:
@@ -65,7 +65,6 @@ jobs:
           config-map: |
             gcp:project: { value: "${{ vars.GCP_PROJECT_ID }}" }
             nodeImage: { value: "${{ steps.img.outputs.node }}" }
-            redisUrl: { value: "${{ secrets.REDIS_URL }}", secret: true }
             rustImage: { value: "${{ steps.img.outputs.rust }}" }
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
