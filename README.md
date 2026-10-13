@@ -48,7 +48,7 @@ Releases use [release-please](https://github.com/googleapis/release-please) with
 
 GitHub configuration:
 - Variables: `GCP_PROJECT_ID`, `GCP_WIF_PROVIDER`, `GCP_SERVICE_ACCOUNT` (Workload Identity Federation)
-- Secrets: `PULUMI_ACCESS_TOKEN`, `REDIS_URL` (Upstash `rediss://default:<password>@<host>:6379`)
+- Secrets: `PULUMI_ACCESS_TOKEN`, `RELEASE_PLEASE_TOKEN` (PAT with `contents` + `pull requests` write; needed because Actions is not allowed to create PRs), `REDIS_URL` (Upstash `rediss://default:<password>@<host>:6379`)
 
 After deploy, run the benchmark from the VM (the `vmSsh` stack output has the command):
 
