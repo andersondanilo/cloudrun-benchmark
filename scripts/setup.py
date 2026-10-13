@@ -79,7 +79,7 @@ def main():
     f = sock.makefile("rwb", buffering=0)
 
     def call(*args):
-        f.write(command(*args))
+        sock.sendall(command(*args))
         reply = f.readline().strip()
         if reply.startswith(b"-"):
             sys.exit(f"redis error: {reply.decode()}")
