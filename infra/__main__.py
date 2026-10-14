@@ -18,7 +18,7 @@ apis = [
 ]
 
 
-# Redis on the cheapest VM (e2-micro), internal IP only reachable inside the VPC, password protected.
+# Redis on a VM (e2-highcpu-4), internal IP only reachable inside the VPC, password protected.
 redis_password = random.RandomPassword("redis-password", length=32, special=False)
 
 gcp.compute.Firewall(
@@ -48,7 +48,7 @@ systemctl restart redis-server
 redis_vm = gcp.compute.Instance(
     "redis-vm",
     name="benchmark-redis",
-    machine_type="e2-micro",
+    machine_type="e2-highcpu-4",
     zone=zone,
     tags=["redis"],
     boot_disk=gcp.compute.InstanceBootDiskArgs(
@@ -116,7 +116,7 @@ node_svc = service("node-fastify", node_image)
 rust_svc = service("rust-poem", rust_image)
 go_svc = service("go-fasthttp", go_image)
 
-# Cheapest VM: e2-micro. Installs wrk, setup.py and the bench script, pre-wired to both services
+# Load generator VM (e2-highcpu-4). Installs wrk, setup.py and the bench script, pre-wired to both services
 # and to the Redis VM (REDIS_URL in a root-only file; the startup script is a Pulumi secret).
 scripts = Path(__file__).resolve().parent.parent / "scripts"
 bench_sh = (scripts / "bench.sh").read_text()
@@ -153,7 +153,7 @@ startup = pulumi.Output.all(node_svc.uri, rust_svc.uri, go_svc.uri, redis_url).a
 vm = gcp.compute.Instance(
     "bench-vm",
     name="benchmark-wrk",
-    machine_type="e2-micro",
+    machine_type="e2-highcpu-4",
     zone=zone,
     boot_disk=gcp.compute.InstanceBootDiskArgs(
         initialize_params=gcp.compute.InstanceBootDiskInitializeParamsArgs(
