@@ -65,6 +65,7 @@ jobs:
           stack-name: prod
           work-dir: infra
           upsert: true
+          refresh: true # resync state if resources were deleted outside Pulumi
           config-map: |
             gcp:project: { value: "${{ vars.GCP_PROJECT_ID }}" }
             nodeImage: { value: "${{ steps.img.outputs.node }}" }
