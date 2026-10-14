@@ -30,7 +30,16 @@ async fn main() -> std::io::Result<()> {
     let port = std::env::var("PORT").unwrap_or_else(|_| "8080".into());
     let redis_url = std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379".into());
     let client = redis::Client::open(redis_url).expect("invalid REDIS_URL");
-    let conn = ConnectionManager::new(client).await.expect("redis connect");
+    // Redis may still be booting (e.g. a freshly created VM), so retry instead of exiting.
+    let conn = loop {
+        match ConnectionManager::new(client.clone()).await {
+            Ok(conn) => break conn,
+            Err(e) => {
+                eprintln!("redis connect: {e} (retrying in 2s)");
+                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            }
+        }
+    };
 
     let app = Route::new().at("/data", get(get_data)).data(conn);
     Server::new(TcpListener::bind(format!("0.0.0.0:{port}")))

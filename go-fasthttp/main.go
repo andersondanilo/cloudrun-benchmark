@@ -6,6 +6,7 @@ import (
 	"math/rand/v2"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/fasthttp/router"
 	"github.com/redis/rueidis"
@@ -29,9 +30,15 @@ func main() {
 	if err != nil {
 		log.Fatalf("invalid REDIS_URL: %v", err)
 	}
-	client, err := rueidis.NewClient(opt)
-	if err != nil {
-		log.Fatalf("redis connect: %v", err)
+	// Redis may still be booting (e.g. a freshly created VM), so retry instead of exiting.
+	var client rueidis.Client
+	for {
+		client, err = rueidis.NewClient(opt)
+		if err == nil {
+			break
+		}
+		log.Printf("redis connect: %v (retrying in 2s)", err)
+		time.Sleep(2 * time.Second)
 	}
 	defer client.Close()
 
