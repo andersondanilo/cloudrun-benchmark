@@ -42,6 +42,20 @@ docker compose down
 
 Locally, compose runs a plain Redis container. Results are only indicative, since APIs and wrk share one machine.
 
+## Results on cloudrun
+
+| | Node.js (Fastify) | Rust (Poem) |
+|---|---|---|
+| Requests/sec | 237.72 | **467.93** |
+| Transfer/sec | 23.26 MB | **45.79 MB** |
+| Latency (avg) | 83.80 ms | **42.59 ms** |
+| Latency p50 | 81.34 ms | **42.16 ms** |
+| Latency p90 | 95.26 ms | **48.79 ms** |
+| Latency p99 | 112.70 ms | **58.97 ms** |
+| Requests in 30 s | 7,139 | **14,051** |
+
+Rust reached **about double the requests per second (1.97x)** with **about half the latency** at every percentile. With a fixed number of connections the two numbers are linked: 20 connections at roughly 84 ms per request is about 238 requests per second, and 20 connections at roughly 43 ms is about 468.
+
 ## Deploy
 
 Releases use [release-please](https://github.com/googleapis/release-please) with [Conventional Commits](https://www.conventionalcommits.org/): merging the release PR on `main` only cuts the release and does not deploy. Deploys are manual: Actions → **deploy** → *Run workflow* (or `gh workflow run deploy.yml`). It builds the images, pushes them to Artifact Registry and runs `pulumi up` (stack `prod`).
