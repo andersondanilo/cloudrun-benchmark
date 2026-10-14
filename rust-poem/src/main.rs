@@ -2,14 +2,20 @@ use poem::{
     error::InternalServerError, get, handler, http::StatusCode, listener::TcpListener, web::Data,
     EndpointExt, Response, Result, Route, Server,
 };
+use rand::Rng;
 use redis::{aio::ConnectionManager, AsyncCommands};
 
-const KEY: &str = "benchmark:data";
+const KEY_PREFIX: &str = "benchmark:data";
+const COUNT: u32 = 20; // documents stored by scripts/setup.py as benchmark:data:0 .. :19
 
 #[handler]
 async fn get_data(Data(redis): Data<&ConnectionManager>) -> Result<Response> {
     let mut conn = redis.clone();
-    let body: Option<String> = conn.get(KEY).await.map_err(InternalServerError)?;
+    let idx = rand::thread_rng().gen_range(0..COUNT);
+    let body: Option<String> = conn
+        .get(format!("{KEY_PREFIX}:{idx}"))
+        .await
+        .map_err(InternalServerError)?;
     Ok(match body {
         Some(b) => Response::builder().content_type("application/json").body(b),
         None => Response::builder()

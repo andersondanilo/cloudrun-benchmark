@@ -10,6 +10,7 @@ region = gcp_cfg.require("region")  # southamerica-east1 (Sao Paulo)
 zone = gcp_cfg.require("zone")
 node_image = cfg.require("nodeImage")
 rust_image = cfg.require("rustImage")
+go_image = cfg.require("goImage")
 
 apis = [
     gcp.projects.Service(f"api-{s}", service=f"{s}.googleapis.com", disable_on_destroy=False)
@@ -113,6 +114,7 @@ def service(name: str, image: str) -> gcp.cloudrunv2.Service:
 
 node_svc = service("node-fastify", node_image)
 rust_svc = service("rust-poem", rust_image)
+go_svc = service("go-fasthttp", go_image)
 
 # Cheapest VM: e2-micro. Installs wrk, setup.py and the bench script, pre-wired to both services
 # and to the Redis VM (REDIS_URL in a root-only file; the startup script is a Pulumi secret).
@@ -122,7 +124,7 @@ setup_py = (scripts / "setup.py").read_text()
 
 
 def render_startup(values):
-    node_url, rust_url, redis = values
+    node_url, rust_url, go_url, redis = values
     return f"""#!/bin/bash
 set -eux
 apt-get update
@@ -130,6 +132,7 @@ apt-get install -y wrk curl python3
 cat > /etc/benchmark.env <<'ENV'
 NODE_URL={node_url}
 RUST_URL={rust_url}
+GO_URL={go_url}
 ENV
 install -m 600 /dev/null /etc/benchmark-redis.env
 cat > /etc/benchmark-redis.env <<'ENV'
@@ -145,7 +148,7 @@ chmod +x /usr/local/bin/bench.sh /usr/local/bin/setup.py
 """
 
 
-startup = pulumi.Output.all(node_svc.uri, rust_svc.uri, redis_url).apply(render_startup)
+startup = pulumi.Output.all(node_svc.uri, rust_svc.uri, go_svc.uri, redis_url).apply(render_startup)
 
 vm = gcp.compute.Instance(
     "bench-vm",
@@ -169,6 +172,7 @@ vm = gcp.compute.Instance(
 
 pulumi.export("nodeUrl", node_svc.uri)
 pulumi.export("rustUrl", rust_svc.uri)
+pulumi.export("goUrl", go_svc.uri)
 pulumi.export("redisHost", redis_vm.network_interfaces[0].network_ip)
 pulumi.export("vmName", vm.name)
 pulumi.export("vmSsh", pulumi.Output.concat("gcloud compute ssh ", vm.name, " --zone ", zone))

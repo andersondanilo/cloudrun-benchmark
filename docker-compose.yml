@@ -18,3 +18,11 @@ services:
       REDIS_URL: redis://redis:6379
     ports: ["3001:8080"]
     depends_on: [redis]
+
+  go-fasthttp:
+    build: ./go-fasthttp
+    environment:
+      PORT: "8080"
+      REDIS_URL: redis://redis:6379
+    ports: ["3002:8080"]
+    depends_on: [redis]

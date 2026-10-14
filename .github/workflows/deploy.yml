@@ -43,10 +43,13 @@ jobs:
           tag="${{ inputs.tag || github.sha }}"; tag="${tag:0:12}"
           docker build -t "$base/node-fastify:$tag" node-fastify
           docker build -t "$base/rust-poem:$tag" rust-poem
+          docker build -t "$base/go-fasthttp:$tag" go-fasthttp
           docker push "$base/node-fastify:$tag"
           docker push "$base/rust-poem:$tag"
+          docker push "$base/go-fasthttp:$tag"
           echo "node=$base/node-fastify:$tag" >> "$GITHUB_OUTPUT"
           echo "rust=$base/rust-poem:$tag" >> "$GITHUB_OUTPUT"
+          echo "go=$base/go-fasthttp:$tag" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
@@ -66,5 +69,6 @@ jobs:
             gcp:project: { value: "${{ vars.GCP_PROJECT_ID }}" }
             nodeImage: { value: "${{ steps.img.outputs.node }}" }
             rustImage: { value: "${{ steps.img.outputs.rust }}" }
+            goImage: { value: "${{ steps.img.outputs.go }}" }
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}

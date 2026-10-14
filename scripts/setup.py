@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Store a random JSON document of exactly 100 KiB (102400 bytes) in Redis.
+"""Store 20 random JSON documents in Redis, from exactly 100 bytes up to exactly 50 KiB.
+
+The documents are saved as benchmark:data:0 .. benchmark:data:19 with sizes growing
+geometrically (100 B, ..., 51200 B); the APIs serve a random one per request.
 
 Usage: REDIS_URL=redis://default:<pw>@<host>:6379 ./setup.py
 REDIS_URL lookup: environment, then /etc/benchmark-redis.env (root-only, written on the
@@ -15,8 +18,17 @@ import sys
 import uuid
 from urllib.parse import unquote, urlparse
 
-KEY = "benchmark:data"
-SIZE = 100 * 1024
+KEY_PREFIX = "benchmark:data"
+COUNT = 20
+MIN_SIZE = 100
+MAX_SIZE = 50 * 1024  # 51200 bytes
+
+
+def sizes():
+    ratio = (MAX_SIZE / MIN_SIZE) ** (1 / (COUNT - 1))
+    out = [round(MIN_SIZE * ratio**i) for i in range(COUNT)]
+    out[-1] = MAX_SIZE
+    return out
 
 
 def rand_str(n):
@@ -33,19 +45,19 @@ def item():
     }
 
 
-def build_payload():
+def build_payload(size):
     dumps = lambda o: json.dumps(o, separators=(",", ":"))
     total = len(dumps({"items": [], "pad": ""}))
     items = []
     while True:
         it = item()
         cost = len(dumps(it)) + (1 if items else 0)
-        if total + cost > SIZE:
+        if total + cost > size:
             break
         items.append(it)
         total += cost
-    out = dumps({"items": items, "pad": rand_str(SIZE - total)})
-    assert len(out.encode()) == SIZE, len(out.encode())
+    out = dumps({"items": items, "pad": rand_str(size - total)})
+    assert len(out.encode()) == size, len(out.encode())
     return out.encode()
 
 
@@ -86,9 +98,11 @@ def main():
 
     if url.password:
         call("AUTH", unquote(url.username or "default"), unquote(url.password))
-    payload = build_payload()
-    call("SET", KEY, payload)
-    print(f"ok: set {KEY} ({len(payload)} bytes)")
+    call("DEL", KEY_PREFIX)  # key from the old single-document layout
+    for i, size in enumerate(sizes()):
+        payload = build_payload(size)
+        call("SET", f"{KEY_PREFIX}:{i}", payload)
+        print(f"ok: set {KEY_PREFIX}:{i} ({len(payload)} bytes)")
 
 
 if __name__ == "__main__":
