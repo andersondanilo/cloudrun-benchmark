@@ -18,7 +18,7 @@ The APIs are read-only. `scripts/setup.py` (stdlib Python, no dependencies) gene
 **Payload:** `{"items":[{id,name,score,active,tags[3]}...],"pad":"<random>"}`. The pad string brings each document to its exact size (ASCII only).
 
 **Infrastructure (Pulumi, `infra/`)**
-- Cloud Run v2, one service per API (3 total), `southamerica-east1`, 1 vCPU / 512 MiB, min = max = 1 instance, concurrency 20, public.
+- Cloud Run v2, one service per API (3 total), `southamerica-east1`, 1 vCPU / 512 MiB, min = max = 1 instance, concurrency 80 (the results below were measured with 20), public.
 - Redis: `e2-highcpu-4` Debian 12 VM (`redis-server`, password-protected, `maxmemory 512mb`, no persistence) in the same zone. Reached over its internal IP: the Cloud Run services use Direct VPC egress, and a firewall rule allows tcp/6379 only from the default network's private ranges.
 - Load generator: `e2-highcpu-4` Debian 12 VM in `southamerica-east1-a` (separate from the Redis VM) with `wrk` installed, plus `/usr/local/bin/setup.py` and `/usr/local/bin/bench.sh` (pre-configured with the three service URLs).
 
