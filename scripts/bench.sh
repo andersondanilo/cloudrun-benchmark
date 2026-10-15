@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run setup.py first to populate Redis.
-# Usage: NODE_URL=... RUST_URL=... GO_URL=... [THREADS=4 CONNECTIONS=20 DURATION=30s] ./bench.sh
+# Usage: NODE_URL=... RUST_URL=... GO_URL=... [THREADS=4 CONNECTIONS=240 DURATION=30s] ./bench.sh
 # Defaults target the docker-compose stack. Needs: wrk, curl.
 set -euo pipefail
 

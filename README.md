@@ -18,11 +18,11 @@ The APIs are read-only. `scripts/setup.py` (stdlib Python, no dependencies) gene
 **Payload:** `{"items":[{id,name,score,active,tags[3]}...],"pad":"<random>"}`. The pad string brings each document to its exact size (ASCII only).
 
 **Infrastructure (Pulumi, `infra/`)**
-- Cloud Run v2, one service per API (3 total), `southamerica-east1`, 1 vCPU / 512 MiB, min = max = 1 instance, concurrency 80 (the results below were measured with 20), public.
+- Cloud Run v2, one service per API (3 total), `southamerica-east1`, 1 vCPU / 512 MiB, min = max = 1 instance, concurrency 240 (the results below were measured with 20), public.
 - Redis: `e2-highcpu-4` Debian 12 VM (`redis-server`, password-protected, `maxmemory 512mb`, no persistence) in the same zone. Reached over its internal IP: the Cloud Run services use Direct VPC egress, and a firewall rule allows tcp/6379 only from the default network's private ranges.
 - Load generator: `e2-highcpu-4` Debian 12 VM in `southamerica-east1-a` (separate from the Redis VM) with `wrk` installed, plus `/usr/local/bin/setup.py` and `/usr/local/bin/bench.sh` (pre-configured with the three service URLs).
 
-**Load profile (`scripts/bench.sh`, overridable via env):** 5 s warm-up, then `wrk -t2 -c20 -d30s --latency` against `GET /data`, node first, then rust, then go.
+**Load profile (`scripts/bench.sh`, overridable via env):** 5 s warm-up, then `wrk -t2 -c240 -d30s --latency` against `GET /data`, node first, then rust, then go.
 
 ## Run locally
 
@@ -35,7 +35,7 @@ docker compose up -d --build      # redis + node (:3000) + rust (:3001) + go (:3
 curl -s localhost:3000/data | wc -c   # varies per request, 100 to 51200
 
 ./scripts/bench.sh                # benchmarks all three
-THREADS=4 CONNECTIONS=40 DURATION=60s ./scripts/bench.sh
+THREADS=4 CONNECTIONS=120 DURATION=60s ./scripts/bench.sh
 
 docker compose down
 ```

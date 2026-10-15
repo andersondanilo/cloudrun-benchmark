@@ -81,7 +81,7 @@ def service(name: str, image: str) -> gcp.cloudrunv2.Service:
         deletion_protection=False,
         template=gcp.cloudrunv2.ServiceTemplateArgs(
             scaling=gcp.cloudrunv2.ServiceTemplateScalingArgs(min_instance_count=1, max_instance_count=1),
-            max_instance_request_concurrency=80,
+            max_instance_request_concurrency=240,
             # Direct VPC egress to reach the Redis VM's internal IP.
             vpc_access=gcp.cloudrunv2.ServiceTemplateVpcAccessArgs(
                 egress="PRIVATE_RANGES_ONLY",
