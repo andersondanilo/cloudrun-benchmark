@@ -44,7 +44,27 @@ Locally, compose runs a plain Redis container. Results are only indicative, sinc
 
 ## Results on cloudrun
 
-`wrk -t2 -c20 -d30s --latency` from the benchmark VM, random one of the 20 payloads (100 B to 50 KiB) per request. Both the Redis VM and the load generator are `e2-highcpu-4`.
+`wrk -t2 -c240 -d30s --latency` from the benchmark VM, random one of the 20 payloads (100 B to 50 KiB) per request. Cloud Run concurrency is 240 (1 vCPU / 512 MiB, one instance per service) and both the Redis VM and the load generator are `e2-highcpu-4`.
+
+| | Node.js (Fastify) | Rust (Poem) | Go (fasthttp) |
+|---|---|---|---|
+| Requests/sec | 503.98 | 657.99 | **706.69** |
+| Transfer/sec | 4.45 MB | 5.92 MB | **6.15 MB** |
+| Latency (avg) | 518.87 ms | 431.91 ms | **413.12 ms** |
+| Latency p50 | 204.88 ms | **87.92 ms** | 360.08 ms |
+| Latency p75 | 732.77 ms | 740.25 ms | **713.31 ms** |
+| Latency p90 | 1.16 s | 1.07 s | **1.05 s** |
+| Latency p99 | 1.22 s | 1.23 s | **1.11 s** |
+| Latency max | 1.32 s | 1.32 s | **1.18 s** |
+| Requests in 30 s | 15,134 | 19,760 | **21,234** |
+
+With enough concurrency to keep the instance busy, the runtimes separate: Go does +40% and Rust +31% more requests per second than Node, and Go is +7% ahead of Rust. In the 20-connection runs below all three were within about 8% of each other, so the lower concurrency was probably hiding the differences.
+
+Latency is much higher than in those runs, which is expected: 240 requests are in flight against a single 1 vCPU instance, so most of the time is spent queueing (240 connections at 0.41 to 0.52 s average latency is roughly 460 to 580 req/s, in the same range as the measured 504 to 707). This means the 1 vCPU instance is probably saturated, and the throughput numbers reflect what each runtime can do on one vCPU. Node runs your JavaScript on a single thread, so a 2 vCPU comparison would need Node to run more than one worker to be fair.
+
+Treat the percentiles with care. This is a single run, and the medians don't line up with the throughput order (for example Go has the best throughput but a 360 ms median, against 88 ms for Rust). The tail is similar for all three, with p99 around 1.1 to 1.2 s.
+
+### Previous run (20 connections, concurrency 20, `e2-highcpu-4` VMs)
 
 | | Node.js (Fastify) | Rust (Poem) | Go (fasthttp) |
 |---|---|---|---|
@@ -60,9 +80,9 @@ Locally, compose runs a plain Redis container. Results are only indicative, sinc
 
 Rust is ahead on throughput (+8% over Node, +2% over Go), but the differences are small. The latency distribution is bimodal for all three: the median is 11 to 15 ms, but p75 and above is hundreds of milliseconds up to about 1 s.
 
-The same test on `e2-micro` VMs (below) gave nearly the same numbers, so the Redis VM and the load generator were not the limit. The pattern is the same for all three runtimes, so the limit is probably on the Cloud Run side (the 1 vCPU instance, its concurrency or the request path), not the language. This was not investigated, so these numbers say more about the setup than about the languages.
+The same test on `e2-micro` VMs (below) gave nearly the same numbers, so the Redis VM and the load generator were not the limit.
 
-### Previous run (`e2-micro` VMs, same workload)
+### Earlier run (20 connections, concurrency 20, `e2-micro` VMs)
 
 | | Node.js (Fastify) | Rust (Poem) | Go (fasthttp) |
 |---|---|---|---|
@@ -76,7 +96,7 @@ The same test on `e2-micro` VMs (below) gave nearly the same numbers, so the Red
 | Latency max | 1.16 s | **1.05 s** | 1.06 s |
 | Requests in 30 s | 14,749 | **16,780** | **16,780** |
 
-### Earlier run (single 100 KiB payload, Node and Rust only, `e2-micro` VMs)
+### First run (single 100 KiB payload, Node and Rust only, `e2-micro` VMs)
 
 | | Node.js (Fastify) | Rust (Poem) |
 |---|---|---|
