@@ -10,7 +10,7 @@ NODE_URL="${NODE_URL:-http://localhost:3000}"
 RUST_URL="${RUST_URL:-http://localhost:3001}"
 GO_URL="${GO_URL:-http://localhost:3002}"
 THREADS="${THREADS:-2}"
-CONNECTIONS="${CONNECTIONS:-20}"
+CONNECTIONS="${CONNECTIONS:-80}"
 DURATION="${DURATION:-30s}"
 
 run() {
